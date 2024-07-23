@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model UmsClient {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  clientName String   @default("")
+  apiKeys    String[] //3496e066-331d-488e-ba52-e654e2e09c6f
+  users      User[]
+}
+
+model User {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  email         String
+  password      String?  @default(uuid())
+  emailVerified Boolean? @default(false)
+
+  accounts Account[]
+  sessions Session[]
+
+  clientId String    @db.ObjectId
+  client   UmsClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  profile   Profile?
+
+  @@unique([email, clientId])
+}
+
+model Profile {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  userId   String @unique @db.ObjectId
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name     String @default("")
+  img      String @default("")
+  username String @unique @default(uuid())
+  extra    Json?
+}
+
+model Account {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String @db.ObjectId
+  provider      String
+  refresh_token String @unique @default(uuid())
+  access_token  String @unique @default(uuid())
+  reset_token   String @unique @default(uuid())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique //jwt
+  ip           String   @default("")
+  device       String   @default("")
+  language     String   @default("")
+  userId       String   @db.ObjectId
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
